@@ -29,9 +29,8 @@ matchRouter.get("/", async (req, res) => {
       .orderBy(desc(matches.createdAt));
     res.status(200).json({ data: results });
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Internal server error", error: error.message });
+    console.error("GET /matches failed:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 
