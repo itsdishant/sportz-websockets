@@ -1,5 +1,5 @@
 {
-  "name": "sportz-backend",
+  "name": "sportz-websockets",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -17,7 +17,8 @@
     "dotenv": "^17.4.2",
     "drizzle-orm": "^0.45.2",
     "express": "^5.2.1",
-    "pg": "^8.22.0"
+    "pg": "^8.22.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/pg": "^8.20.0",
