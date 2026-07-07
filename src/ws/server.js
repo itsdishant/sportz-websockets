@@ -39,6 +39,9 @@ export function attachWebSocketServer(server) {
     ws.on("pong", () => (ws.isAlive = true));
 
     sendJson(ws, { type: "welcome", message: "Welcome to Sportz!" });
+    ws.on("error", (error) => {
+      console.error("websocket connection error:", error);
+    });
   });
 
   wss.on("error", (error) => {
