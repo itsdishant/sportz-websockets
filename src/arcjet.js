@@ -40,7 +40,7 @@ export function securityMiddleware() {
 
       if (decision.isDenied()) {
         if (decision.reason.isRateLimit()) {
-          res.set("Retry-After", String(decision.reason.retryAfter));
+          res.set("Retry-After", String(decision.reason.reset));
           return res.status(429).json({ error: "Too many requests." });
         }
 
