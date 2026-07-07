@@ -126,7 +126,7 @@ src/
 ## Notes And Caveats
 
 - The database connection relies on a valid `DATABASE_URL` in the `.env` file. The app will throw an error if this is missing.
-- Arcjet security requires a valid `ARCJET_KEY` in your `.env`. If not provided, it will throw an error on startup.
+- Arcjet security requires a valid `ARCJET_KEY` in your `.env`. If not provided, the security middleware will simply be bypassed (useful for local development).
 - The generated `drizzle/` directory contains your SQL migrations. These should generally be committed to version control.
 - Ensure `.env` is listed in your `.gitignore` to prevent leaking database credentials and API keys.
 

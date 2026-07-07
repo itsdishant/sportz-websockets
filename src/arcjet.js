@@ -1,9 +1,7 @@
 import arcjet, { detectBot, shield, slidingWindow } from "@arcjet/node";
 
 const arcjetKey = process.env.ARCJET_KEY;
-const arcjetMode = process.env.ARCJECT_MODE === "DRY_RUN" ? "DRY_RUN" : "LIVE";
-
-if (!arcjetKey) throw new Error("ARCJET_KEY environment variable is missing.");
+const arcjetMode = process.env.ARCJET_MODE === "DRY_RUN" ? "DRY_RUN" : "LIVE";
 
 export const httpArcjet = arcjetKey
   ? arcjet({
@@ -42,6 +40,7 @@ export function securityMiddleware() {
 
       if (decision.isDenied()) {
         if (decision.reason.isRateLimit()) {
+          res.set("Retry-After", String(decision.reason.retryAfter));
           return res.status(429).json({ error: "Too many requests." });
         }
 
