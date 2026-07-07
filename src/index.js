@@ -3,20 +3,20 @@ import http from "http";
 
 import { matchRouter } from "./routes/matches.js";
 import { attachWebSocketServer } from "./ws/server.js";
+import { securityMiddleware } from "./arcjet.js";
 
 const PORT = Number(process.env.PORT || 8000);
 const HOST = process.env.HOST || "0.0.0.0";
 
 const app = express();
 const httpServer = http.createServer(app);
+const { broadcastMatchCreated } = attachWebSocketServer(httpServer);
 
+app.use(securityMiddleware());
 app.use(express.json());
-
-app.get("/", (req, res) => res.send("sportz-backend running"));
-
 app.use("/matches", matchRouter);
 
-const { broadcastMatchCreated } = attachWebSocketServer(httpServer);
+app.get("/", (req, res) => res.send("sportz-backend running"));
 
 app.locals.broadcastMatchCreated = broadcastMatchCreated;
 

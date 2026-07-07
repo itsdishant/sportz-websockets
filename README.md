@@ -1,24 +1,59 @@
 # Sportz WebSockets
 
-Sportz WebSockets is a real-time sports application backend built with Node.js. It provides the foundation for managing sports matches, live commentary, and real-time score updates.
+Sportz WebSockets is a real-time sports application backend built with Node.js. It provides the foundation for managing sports matches, live commentary, and real-time score updates using WebSockets.
 
-The application is built using Node.js (ES Modules), Express, Drizzle ORM, Zod for schema validation, and a Neon PostgreSQL database.
+The application is built using Node.js (ES Modules), Express, Drizzle ORM, Zod for schema validation, a Neon PostgreSQL database, and Arcjet for advanced rate limiting and bot protection.
 
 ## Project At A Glance
 
-- Database schema managed via Drizzle ORM featuring `matches` and `commentary` tables.
-- Robust Zod validation schemas to ensure data integrity during match creation and score updates.
-- Real-time compatible data structures tailored for live sports events.
-- PostgreSQL database integration powered by the `pg` driver and hosted on Neon Serverless Postgres.
+- **Database:** Schema managed via Drizzle ORM featuring `matches` and `commentary` tables, backed by Neon Serverless Postgres.
+- **Validation:** Robust Zod validation schemas to ensure data integrity during match creation and score updates.
+- **Real-Time Engine:** Native WebSocket integration to instantly broadcast events (like `match_created`) to connected clients.
+- **Security & Rate Limiting:** Integrated with `@arcjet/node` for advanced WAF rules, bot detection, and sliding window rate limiting.
 
 ## Tech Stack
 
 - Node.js (ES Modules)
 - Express `5.2`
+- WebSockets (`ws`)
 - PostgreSQL (via `pg` `8.22`)
 - Drizzle ORM `0.45`
 - Zod `4.4`
-- dotenv `17.4`
+- Arcjet `@arcjet/node` `1.7`
+
+## API Endpoints
+
+### HTTP REST Endpoints
+
+#### `GET /`
+- **Description**: Health check endpoint.
+- **Response**: `sportz-backend running`
+
+#### `GET /matches`
+- **Description**: Retrieves a list of matches.
+- **Query Parameters**:
+  - `limit` (optional): Integer (max 100, default 50).
+- **Response**: `200 OK` with a JSON payload containing `{ data: [...] }`.
+
+#### `POST /matches`
+- **Description**: Creates a new match and broadcasts a `match_created` event to all active WebSocket clients.
+- **Body Payload**:
+  - `sport` (string, required)
+  - `homeTeam` (string, required)
+  - `awayTeam` (string, required)
+  - `startTime` (ISO 8601 date string, required)
+  - `endTime` (ISO 8601 date string, required, must be after `startTime`)
+  - `homeScore` (number, optional, defaults to 0)
+  - `awayScore` (number, optional, defaults to 0)
+- **Response**: `201 Created` with a JSON payload containing `{ data: [...] }`.
+
+### WebSocket Endpoints
+
+#### `ws://[HOST]:[PORT]/ws`
+- **Description**: The main real-time connection. 
+- **Events Received by Client**:
+  - `welcome`: Initial connection confirmation.
+  - `match_created`: Fired instantly when a new match is created via `POST /matches`.
 
 ## Getting Started
 
@@ -28,10 +63,11 @@ Install dependencies from the project directory:
 npm install
 ```
 
-Configure your environment by creating a `.env` file in the root directory. Add your Neon PostgreSQL connection string:
+Configure your environment by creating a `.env` file in the root directory. Add your Neon PostgreSQL connection string and your Arcjet API key:
 
 ```env
 DATABASE_URL="postgresql://[user]:[password]@[neon_hostname]/[dbname]?sslmode=require&channel_binding=require"
+ARCJET_KEY="your-arcjet-key-here"
 ```
 
 Start the local dev server:
@@ -75,6 +111,11 @@ Run these commands sequentially whenever you update the Drizzle schema in `src/d
 ```text
 src/
   index.js                Main application entry point
+  arcjet.js               Arcjet security middleware, bot protection, and rate limiting
+  ws/
+    server.js             WebSocket server logic and broadcasting rules
+  routes/
+    matches.js            Express routes for the /matches API
   db/
     db.js                 Database connection and client setup
     schema.js             Drizzle ORM schema definitions (tables, enums)
@@ -85,9 +126,9 @@ src/
 ## Notes And Caveats
 
 - The database connection relies on a valid `DATABASE_URL` in the `.env` file. The app will throw an error if this is missing.
-- The `src/index.js` script currently includes a demonstration of database operations to verify the Drizzle and Neon configuration.
+- Arcjet security requires a valid `ARCJET_KEY` in your `.env`. If not provided, it will throw an error on startup.
 - The generated `drizzle/` directory contains your SQL migrations. These should generally be committed to version control.
-- Ensure `.env` is listed in your `.gitignore` to prevent leaking database credentials.
+- Ensure `.env` is listed in your `.gitignore` to prevent leaking database credentials and API keys.
 
 ## Useful Files
 
