@@ -23,37 +23,102 @@ The application is built using Node.js (ES Modules), Express, Drizzle ORM, Zod f
 
 ## API Endpoints
 
-### HTTP REST Endpoints
+### Default
 
-#### `GET /`
-- **Description**: Health check endpoint.
-- **Response**: `sportz-backend running`
+<details>
+<summary><code>GET</code> <code><b>/</b></code> <span>(Health check endpoint)</span></summary>
 
-#### `GET /matches`
-- **Description**: Retrieves a list of matches.
-- **Query Parameters**:
-  - `limit` (optional): Integer (max 100, default 50).
-- **Response**: `200 OK` with a JSON payload containing `{ data: [...] }`.
+**Responses**
 
-#### `POST /matches`
-- **Description**: Creates a new match and broadcasts a `match_created` event to all active WebSocket clients.
-- **Body Payload**:
-  - `sport` (string, required)
-  - `homeTeam` (string, required)
-  - `awayTeam` (string, required)
-  - `startTime` (ISO 8601 date string, required)
-  - `endTime` (ISO 8601 date string, required, must be after `startTime`)
-  - `homeScore` (number, optional, defaults to 0)
-  - `awayScore` (number, optional, defaults to 0)
-- **Response**: `201 Created` with a JSON payload containing `{ data: [...] }`.
+- `200 OK`: `sportz-backend running`
+</details>
 
-### WebSocket Endpoints
+### Matches
 
-#### `ws://[HOST]:[PORT]/ws`
-- **Description**: The main real-time connection. 
-- **Events Received by Client**:
-  - `welcome`: Initial connection confirmation.
-  - `match_created`: Fired instantly when a new match is created via `POST /matches`.
+<details>
+<summary><code>GET</code> <code><b>/matches</b></code> <span>(Retrieves a list of matches)</span></summary>
+
+**Query Parameters**
+
+- `limit` _(integer, optional)_: Max 100, default 50.
+
+**Responses**
+
+- `200 OK`: JSON payload containing `{ data: [...] }`.
+</details>
+
+<details>
+<summary><code>POST</code> <code><b>/matches</b></code> <span>(Creates a new match)</span></summary>
+
+**Body Payload**
+
+- `sport` _(string, required)_
+- `homeTeam` _(string, required)_
+- `awayTeam` _(string, required)_
+- `startTime` _(ISO 8601 date string, required)_
+- `endTime` _(ISO 8601 date string, required, must be > startTime)_
+- `homeScore` _(number, optional, default: 0)_
+- `awayScore` _(number, optional, default: 0)_
+
+**Responses**
+
+- `201 Created`: JSON payload containing `{ data: [...] }`.
+_(Note: Broadcasts a `match_created` event to all active WebSocket clients)_
+</details>
+
+### Commentary
+
+<details>
+<summary><code>GET</code> <code><b>/matches/:id/commentary</b></code> <span>(Retrieves a list of commentary events for a match)</span></summary>
+
+**Path Parameters**
+
+- `id` _(integer, required)_: The ID of the match.
+
+**Query Parameters**
+
+- `limit` _(integer, optional)_: Max 100, default 100.
+
+**Responses**
+
+- `200 OK`: JSON payload containing `{ data: [...] }`.
+</details>
+
+<details>
+<summary><code>POST</code> <code><b>/matches/:id/commentary</b></code> <span>(Creates a new commentary event for a match)</span></summary>
+
+**Path Parameters**
+
+- `id` _(integer, required)_: The ID of the match.
+
+**Body Payload**
+
+- `minute` _(integer, optional)_: Non-negative.
+- `sequence` _(integer, optional)_
+- `period` _(string, optional)_
+- `eventType` _(string, optional)_
+- `actor` _(string, optional)_
+- `team` _(string, optional)_
+- `message` _(string, required)_
+- `metadata` _(object, optional)_
+- `tags` _(array of strings, optional)_
+
+**Responses**
+
+- `201 Created`: JSON payload containing `{ data: {...} }`.
+</details>
+
+### Real-Time
+
+<details>
+<summary><code>WS</code> <code><b>/ws</b></code> <span>(Main real-time connection)</span></summary>
+
+**Events Received by Client**
+
+- `welcome`: Initial connection confirmation.
+- `match_created`: Fired instantly when a new match is created via `POST /matches`.
+- `commentary_created`: Fired instantly when a new commentary is created via `POST /matches/:id/commentary`.
+</details>
 
 ## Getting Started
 
@@ -80,12 +145,12 @@ npm run dev
 
 Run scripts from `sportz-backend/`.
 
-| Command | Purpose |
-| --- | --- |
-| `npm run dev` | Starts the dev server with automatic file watching using Node's native `--watch` flag. |
-| `npm start` | Starts the Node.js application normally for production-like execution. |
-| `npm run db:generate` | Uses Drizzle Kit to generate SQL migration files based on schema changes. |
-| `npm run db:migrate` | Uses Drizzle Kit to apply the generated migrations to your Neon database. |
+| Command               | Purpose                                                                                |
+| --------------------- | -------------------------------------------------------------------------------------- |
+| `npm run dev`         | Starts the dev server with automatic file watching using Node's native `--watch` flag. |
+| `npm start`           | Starts the Node.js application normally for production-like execution.                 |
+| `npm run db:generate` | Uses Drizzle Kit to generate SQL migration files based on schema changes.              |
+| `npm run db:migrate`  | Uses Drizzle Kit to apply the generated migrations to your Neon database.              |
 
 ## Common Workflows
 
