@@ -21,6 +21,59 @@ The application is built using Node.js (ES Modules), Express, Drizzle ORM, Zod f
 - Zod `4.4`
 - Arcjet `@arcjet/node` `1.7`
 
+## System Architecture & Data Flow
+
+The following sequence diagram maps out the core data flow, showing how REST API updates seamlessly broadcast real-time events to connected WebSocket clients securely using Arcjet.
+
+```mermaid
+sequenceDiagram
+    participant Client A (Subscriber)
+    participant Client B (Admin)
+    participant Arcjet (Security)
+    participant Express REST API
+    participant WebSocket Server
+    participant PostgreSQL DB
+
+    %% WebSocket Connection Flow
+    Client A (Subscriber)->>WebSocket Server: WS Upgrade Request (/ws)
+    WebSocket Server->>Arcjet (Security): Check WS Upgrade Rate Limits & Bots
+    Arcjet (Security)-->>WebSocket Server: Allow Connection
+    WebSocket Server-->>Client A (Subscriber): Emit { "type": "welcome" }
+    
+    %% Subscription Flow
+    Client A (Subscriber)->>WebSocket Server: Send { "type": "subscribe", "matchId": 1 }
+    WebSocket Server-->>Client A (Subscriber): Emit { "type": "subscribed", "matchId": 1 }
+    
+    %% REST Request Flow
+    Client B (Admin)->>Express REST API: POST /matches/1/commentary
+    Express REST API->>Arcjet (Security): Inspect Request
+    Arcjet (Security)-->>Express REST API: Allow Request
+    
+    %% Data Persistence & Validation
+    Express REST API->>Express REST API: Validate payload using Zod
+    Express REST API->>PostgreSQL DB: Insert Commentary (Drizzle ORM)
+    PostgreSQL DB-->>Express REST API: Return Inserted Data
+    
+    %% Real-Time Broadcast
+    Express REST API->>WebSocket Server: Call app.locals.broadcastCommentary()
+    WebSocket Server->>Client A (Subscriber): Emit { "type": "commentary", "data": {...} }
+    Express REST API-->>Client B (Admin): 201 Created { "data": {...} }
+```
+
+## Database Schema
+
+Sportz WebSockets leverages Drizzle ORM paired with Neon Serverless Postgres. The schema is organized into two primary tables:
+
+- **`matches`**: Tracks core match data. Features a custom `match_status` Postgres Enum (`scheduled`, `live`, `finished`) computed dynamically based on start and end times. Stores team names, schedules, and tracks live scores.
+- **`commentary`**: Stores real-time play-by-play events. It utilizes a foreign key (`match_id`) linking back to the parent match. It leverages advanced data types including `jsonb` for flexible `metadata` payloads (e.g., player stats) and text arrays for filterable `tags`.
+
+## Security & Validation
+
+Every incoming request passes through robust protection and strict validation layers:
+
+- **Arcjet Protection**: The `@arcjet/node` middleware protects both standard REST routes and the WebSocket upgrade handshake. It applies a `slidingWindow` rate limit (e.g., 50 reqs/10s for HTTP, 5 reqs/2s for WS) and a `detectBot` policy that actively blocks unauthorized automated tools while allowing verified search engine crawlers.
+- **Zod Data Validation**: Housed in `src/validation/`, strict Zod schemas enforce type safety at runtime. Our match creation schema utilizes `superRefine` hooks to guarantee chronological integrity (i.e., `endTime` must be strictly after `startTime`), and forces scores and IDs to be non-negative integers.
+
 ## API Endpoints
 
 ### Default
@@ -216,11 +269,15 @@ src/
     server.js             WebSocket server logic and broadcasting rules
   routes/
     matches.js            Express routes for the /matches API
+    commentary.js         Express routes for the /matches/:id/commentary API
   db/
     db.js                 Database connection and client setup
     schema.js             Drizzle ORM schema definitions (tables, enums)
   validation/
     matches.js            Zod validation schemas for match data
+    commentary.js         Zod validation schemas for commentary data
+  utils/
+    match-status.js       Utility for computing live/scheduled/finished status
 ```
 
 ## Notes And Caveats
