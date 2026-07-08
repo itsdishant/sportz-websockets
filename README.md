@@ -73,7 +73,7 @@ _(Note: Broadcasts a `match_created` event to all active WebSocket clients)_
 
 **Path Parameters**
 
-- `id` _(integer, required)_: The ID of the match.
+- `id` _(positive integer, required)_: The ID of the match.
 
 **Query Parameters**
 
@@ -89,7 +89,7 @@ _(Note: Broadcasts a `match_created` event to all active WebSocket clients)_
 
 **Path Parameters**
 
-- `id` _(integer, required)_: The ID of the match.
+- `id` _(positive integer, required)_: The ID of the match.
 
 **Body Payload**
 
@@ -108,17 +108,52 @@ _(Note: Broadcasts a `match_created` event to all active WebSocket clients)_
 - `201 Created`: JSON payload containing `{ data: {...} }`.
 </details>
 
-### Real-Time
+## WebSocket Protocol
 
-<details>
-<summary><code>WS</code> <code><b>/ws</b></code> <span>(Main real-time connection)</span></summary>
+Connect:
 
-**Events Received by Client**
+`ws://localhost:8000/ws`
 
-- `welcome`: Initial connection confirmation.
-- `match_created`: Fired instantly when a new match is created via `POST /matches`.
-- `commentary_created`: Fired instantly when a new commentary is created via `POST /matches/:id/commentary`.
-</details>
+### Client → Server
+
+```json
+{ "type": "subscribe", "matchId": 123 }
+```
+
+```json
+{ "type": "unsubscribe", "matchId": 123 }
+```
+
+### Server → Client
+
+```json
+{ "type": "welcome" }
+```
+
+```json
+{ "type": "subscribed", "matchId": 123 }
+```
+
+```json
+{ "type": "unsubscribed", "matchId": 123 }
+```
+
+```json
+{ "type": "match_created", "data": { "id": 1, "homeTeam": "FC Neon", "awayTeam": "Drizzle United", "sport": "football", "startTime": "...", "endTime": "...", "homeScore": 0, "awayScore": 0, "status": "scheduled" } }
+```
+
+```json
+{ "type": "commentary", "data": { "id": 1, "matchId": 123, "message": "..." } }
+```
+
+```json
+{ "type": "error", "message": "Invalid JSON" }
+```
+
+### Limits
+
+- Rate limit: 5 messages / 2 seconds (Arcjet default)
+- Max message payload: 1 MB
 
 ## Getting Started
 
